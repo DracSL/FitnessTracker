@@ -447,6 +447,25 @@ const undoLastEntry = () => {
   }
 };
 
+useEffect(() => {
+    const savedData = JSON.parse(localStorage.getItem("userData") || "{}");
+
+    if (savedData.height) setHeight(savedData.height);
+    if (savedData.weight) setWeight(savedData.weight);
+    if (savedData.age) setAge(savedData.age);
+    if (savedData.gender) setGender(savedData.gender);
+    if (savedData.weightDate) setWeightDate(savedData.weightDate);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "userData",
+      JSON.stringify({ height, weight, age, gender, weightDate })
+    );
+  }, [height, weight, age, gender, weightDate]);
+
+  
+
 
 useEffect(() => {
   // Wenn current activity nicht mehr im Objekt ist, auf die erste umstellen
