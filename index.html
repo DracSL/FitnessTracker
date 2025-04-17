@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Tracker</title>
+
+  <!-- Chart.js für Gewichtschart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <!-- Styles -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background-color: #99bde1;
+      color: #1f2937;
+      padding: 2rem;
+    }
+
+    h1, h2, h3 {
+      margin-bottom: 0;
+      color: #111827;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: white;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border-radius: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+
+    input, select, button {
+      margin-top: 0.4rem;
+      padding: 0.6rem;
+      font-size: 1rem;
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+    }
+
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      margin-top: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+
+    canvas {
+      margin-top: 1rem;
+    }
+
+    .routine {
+      margin-top: 0.5rem;
+    }
+
+    .routine a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .routine a:hover {
+      text-decoration: underline;
+    }
+
+    .section-title {
+      margin-bottom: 0.5rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    /* Header Image/Text Handling */
+    .header-img {
+        display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+  height: auto;
+    }
+
+    .header-text {
+      display: none;
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Responsive Anpassung für kleinere Screens */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+        font-size: 0.95rem;
+      }
+
+      h1, h2, h3 {
+        font-size: 1.3rem;
+      }
+
+      .container {
+        padding: 0;
+      }
+
+      .card {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      input, select, button {
+        font-size: 1rem;
+        padding: 0.5rem;
+      }
+
+      button {
+        font-size: 1rem;
+        padding: 0.6rem;
+      }
+
+      canvas {
+        width: 100% !important;
+        height: auto !important;
+      }
+
+      .routine {
+        font-size: 0.95rem;
+      }
+
+      label {
+        font-size: 0.95rem;
+      }
+
+      /* Jetzt wird das Bild ausgeblendet und Text angezeigt */
+      .header-img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+    }
+  </style>
+</head>
+<body>
+    
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    const { useState, useEffect, useRef } = React;
+
+    function App() {
+
+      const caloriesChartRef      = useRef(null);
+      const caloriesChartInstance = useRef(null);
+
+      const activities = {
+  "Gehen": 1,
+  "Laufen": 3,
+  "Radfahren": 2,
+  "Workout": 4,
+  "Walking": 1.5,
+  "Schwimmen": 3.5,
+  "Yoga": 2,
+  "Pilates": 2,
+  "Wandern": 2.5,
+  "Tanzen": 3,
+  "Boxen": 4,
+  "Crossfit": 4.5,
+  "Skaten": 2.5,
+  "Klettern": 4,
+  "Rudern": 3.5
+};
+      const activityColors = {
+  "Gehen": "#3b82f6",      // Blau
+  "Laufen": "#10b981",     // Grün
+  "Radfahren": "#f59e0b",  // Gelb
+  "Workout": "#ef4444",    // Rot
+  "Walking": "#6366f1",    // Indigo
+  "Schwimmen": "#06b6d4",  // Cyan
+  "Yoga": "#8b5cf6",       // Violett
+  "Pilates": "#ec4899",    // Pink
+  "Wandern": "#22c55e",    // Hellgrün
+  "Tanzen": "#eab308",     // Gold
+  "Boxen": "#dc2626",      // Dunkelrot
+  "Crossfit": "#0ea5e9",   // Hellblau
+  "Skaten": "#a855f7",     // Lila
+  "Klettern": "#14b8a6",   // Türkis
+  "Rudern": "#f97316"      // Orange
+};
+
+const caloriesPerMinute = {
+  "Gehen": 4,
+  "Laufen": 10,
+  "Radfahren": 8,
+  "Workout": 9,
+  "Walking": 4.5,
+  "Schwimmen": 7,
+  "Yoga": 3,
+  "Pilates": 3,
+  "Wandern": 6,
+  "Tanzen": 7,
+  "Boxen": 8,
+  "Crossfit": 10,
+  "Skaten": 6,
+  "Klettern": 8,
+  "Rudern": 9
+};
+
+const [showAddForm, setShowAddForm] = useState(false);
+const [height, setHeight] = useState(175);
+const [weight, setWeight] = useState(70);
+const [age, setAge] = useState(30);
+const [gender, setGender] = useState("m");
+const [bmi, setBmi] = useState(null);
+const [category, setCategory] = useState("");
+const [weightLog, setWeightLog] = useState(() => JSON.parse(localStorage.getItem("weightLog") || "[]"));
+const [activity, setActivity] = useState("Gehen");
+const [duration, setDuration] = useState(30);
+const [xp, setXp] = useState(() => parseInt(localStorage.getItem("xp") || "0", 10));
+const [level, setLevel] = useState(() => parseInt(localStorage.getItem("level") || "1", 10));
+const [timeFilter, setTimeFilter] = useState("all");
+const chartRef = useRef(null);
+const chartInstance = useRef(null);
+const [activityDate, setActivityDate] = useState(new Date().toISOString().split("T")[0]);
+const [activityLog, setActivityLog] = useState(() => JSON.parse(localStorage.getItem("activityLog") || "[]"));
+const activityChartRef = useRef(null);
+const activityChartInstance = useRef(null);
+const weightChartRef = useRef(null);
+const weightChartInstance = useRef(null);
+const [weightDate, setWeightDate] = useState(new Date().toISOString().split("T")[0]);
+const [confirmation, setConfirmation] = useState("");
+
+
+// 1. State für neue Aktivitätstypen (array aus Objekten)  
+const [customActivities, setCustomActivities] = useState(() =>  
+  JSON.parse(localStorage.getItem("customActivities") || "[]")  
+);
+
+// 2. Eingabestates für das Formular  
+const [newName, setNewName] = useState("");  
+const [newXp, setNewXp] = useState(1);  
+const [newCalories, setNewCalories] = useState(0);  
+const [newColor, setNewColor] = useState("#000000");
+
+// 3. Alle Maps dynamisch zusammenführen  
+const mergedActivities = { ...activities };  
+const mergedCalories = { ...caloriesPerMinute };  
+const mergedColors   = { ...activityColors };  
+
+customActivities.forEach(({ name, xp, calories, color }) => {  
+  mergedActivities[name] = xp;  
+  mergedCalories[name]  = calories;  
+  mergedColors[name]    = color;  
+});
+
+// 4. Funktion zum Hinzufügen einer neuen Aktivität  
+const addCustomActivity = () => {  
+  if (!newName.trim()) return;  
+  const entry = { name: newName.trim(), xp: newXp, calories: newCalories, color: newColor };  
+  const updated = [...customActivities, entry];  
+  setCustomActivities(updated);  
+  localStorage.setItem("customActivities", JSON.stringify(updated));
+  setConfirmation(`Aktivität „${entry.name}“ gespeichert!`);
+  setTimeout(() => setConfirmation(""), 3000);  
+
+  // Felder zurücksetzen  
+  setNewName("");  
+  setNewXp(1);  
+  setNewCalories(0);  
+  setNewColor("#000000");  
+};
+
+
+
+const logWeight = () => {
+  
+  if (new Date(weightDate) > new Date()) {
+    alert("Das Datum darf nicht in der Zukunft liegen.");
+    return;
+  }
+  const newWeightLog = [
+    ...weightLog,
+    {
+      weight,
+      date: weightDate
+    }
+  ];
+  setWeightLog(newWeightLog);
+  localStorage.setItem("weightLog", JSON.stringify(newWeightLog));
+  updateChart(); // Aktualisiere das Chart
+};
+
+
+
+
+
+
+const routines = [
+  {
+    name: "Starting Strength",
+    goal: "Kraft für Anfänger",
+    url: "https://startingstrength.com/get-started/programs"
+  },
+  {
+    name: "Fierce 5",
+    goal: "Kraft & Hypertrophie",
+    url: "https://liftvault.com/programs/bodybuilding/fierce-5-beginner-bodybuilding-program-spreadsheet/"
+  },
+  {
+    name: "PPL (Push/Pull/Legs)",
+    goal: "Fortgeschrittene Split-Routine",
+    url: "https://thefitness.wiki/reddit-archive/a-linear-progression-based-ppl-program-for-beginners/"
+  },
+  {
+    name: "Greyskull LP",
+    goal: "Lineare Progression",
+    url: "https://old.reddit.com/r/Fitness/wiki/recommended_routines"
+  },
+  {
+    name: "Beginner Cardio Routine",
+    goal: "Ausdauersteigerung",
+    url: "https://thefitness.wiki/routines/cardio-and-conditioning/"
+  }
+];
+
+
+
+
+
+      const clearData = () => {
+  // LocalStorage aufräumen
+  localStorage.removeItem("weightLog");
+  localStorage.removeItem("activityLog");
+  localStorage.removeItem("xp");
+  localStorage.removeItem("level");
+  localStorage.removeItem("customActivities");
+
+  // State zurücksetzen
+  setWeightLog([]);
+  setActivityLog([]);
+  setXp(0);
+  setLevel(1);
+  setCustomActivities([]);  // Das ist der wichtige Teil!
+
+  alert("Alle Daten wurden gelöscht!");
+};
+
+const exportData = () => {
+  const weightData = weightLog.map(entry => ({
+    "Datum": entry.date,
+    "Gewicht (kg)": entry.weight,
+  }));
+
+  const activityData = activityLog.map(entry => ({
+    "Datum": entry.date,
+    "Aktivität": entry.activity,
+    "Dauer (Minuten)": entry.duration,
+    "XP": entry.xpGained,
+    "Kalorien": entry.calories
+  }));
+
+  // CSV-Generator mit Semikolon-Trennung
+  const toCSV = (data) => {
+    const header = Object.keys(data[0]).join(";");
+    const rows = data.map(obj =>
+      Object.values(obj).map(val => `"${val}"`).join(";") // Zellen in Anführungszeichen
+    );
+    return [header, ...rows].join("\n");
+  };
+
+  const csvContent =
+    "=== Gewicht ===\n" + toCSV(weightData) +
+    "\n\n=== Aktivitäten ===\n" + toCSV(activityData);
+
+  // BOM hinzufügen für UTF-8 Kompatibilität mit Excel
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "FitnesstrackerExport.csv";
+  link.click();
+};
+
+const bmiTarget = gender === "w" ? 21 : 22.5;
+const idealWeight = bmiTarget * Math.pow(height / 100, 2);
+
+const undoLastEntry = () => {
+  const lastWeightIndex = weightLog.length - 1;
+  const lastActivityIndex = activityLog.length - 1;
+  const lastCustomIndex = customActivities.length - 1;
+
+  // Vergleiche Zeitstempel (falls vorhanden) oder gehe nach Arraylänge als "Fallback"
+  const getTime = entry => entry && entry.date ? new Date(entry.date).getTime() : 0;
+
+  const lastWeightTime = getTime(weightLog[lastWeightIndex]);
+  const lastActivityTime = getTime(activityLog[lastActivityIndex]);
+  const lastCustomTime = lastCustomIndex >= 0 ? Date.now() - 1 : 0; // Treat custom as always latest if present
+
+  
+
+  // Finde den "letzten" durch Vergleich
+  if (lastCustomTime >= lastWeightTime && lastCustomTime >= lastActivityTime) {
+    const updated = customActivities.slice(0, -1);
+    setCustomActivities(updated);
+    localStorage.setItem("customActivities", JSON.stringify(updated));
+    alert(`Benutzerdefinierte Aktivität "${customActivities[lastCustomIndex].name}" wurde gelöscht.`);
+  } else if (lastActivityTime >= lastWeightTime) {
+    const updated = activityLog.slice(0, -1);
+    setActivityLog(updated);
+    localStorage.setItem("activityLog", JSON.stringify(updated));
+    alert("Letzter Aktivitätseintrag gelöscht.");
+  } else if (lastWeightIndex >= 0) {
+    const updated = weightLog.slice(0, -1);
+    setWeightLog(updated);
+    localStorage.setItem("weightLog", JSON.stringify(updated));
+    alert("Letzter Gewichtseintrag gelöscht.");
+  } else {
+    alert("Nichts zum Löschen vorhanden.");
+  }
+};
+
+
+useEffect(() => {
+  // Wenn current activity nicht mehr im Objekt ist, auf die erste umstellen
+  if (!mergedActivities[activity]) {
+    const first = Object.keys(mergedActivities)[0];
+    setActivity(first);
+  }
+}, [mergedActivities]);
+
+
+
+      useEffect(() => {
+        localStorage.setItem("weightLog", JSON.stringify(weightLog));
+        updateChart();
+      }, [weightLog, timeFilter]);
+
+      useEffect(() => {
+        localStorage.setItem("xp", xp.toString());
+        localStorage.setItem("level", level.toString());
+      }, [xp, level]);
+
+      useEffect(() => {
+  if (!activityChartRef.current) return;
+  const ctx = activityChartRef.current.getContext("2d");
+  const filtered = getFilteredActivityLog();
+
+  // Schritt 1: eindeutige, chronologisch sortierte Datumswerte (ISO-Strings)
+  const rawDates = Array.from(new Set(filtered.map(e => e.date)))
+    .sort((a, b) => new Date(a) - new Date(b));
+
+  // Schritt 2: Label in deutschem Datumsformat
+  const labels = rawDates.map(d => new Date(d).toLocaleDateString("de-DE"));
+
+  // Schritt 3: alle genutzten Aktivitätstypen ausfiltern
+  const types = Array.from(new Set(filtered.map(e => e.activity)));
+
+  // Schritt 4: für jeden Typ ein Dataset mit Dauer pro Tag aufbauen
+  const datasets = types.map(type => ({
+    label: type,
+    data: rawDates.map(date =>
+      filtered
+        .filter(e => e.date === date && e.activity === type)
+        .reduce((sum, e) => sum + e.duration, 0)
+    ),
+    backgroundColor: activityColors[type] || '#9ca3af',
+    borderColor:    activityColors[type] || '#9ca3af',
+    borderWidth: 1
+  }));
+
+  // Vorherigen Chart zerstören
+  if (activityChartInstance.current) {
+    activityChartInstance.current.destroy();
+  }
+
+  // Neues gestapeltes Balkendiagramm erstellen
+  activityChartInstance.current = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      scales: {
+        x: { 
+          stacked: true,
+          title: { display: true, text: 'Datum' }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          title: { display: true, text: 'Dauer (Minuten)' }
+        }
+      },
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          
+          mode: 'index',
+          intersect: false,
+          filter: tooltipItem => tooltipItem.raw > 0, 
+          callbacks: {
+            label: ctxItem => {
+              const dur = ctxItem.raw;
+              const type = ctxItem.dataset.label;
+    // Finde Kalorien für diese Aktivität und dieses Datum
+              const date = rawDates[ctxItem.dataIndex];
+              const entry = filtered.find(e => e.date === date && e.activity === type);
+              const kcal = entry ? entry.calories : 0;
+              return `${type}: ${dur} Min. (≈ ${kcal} kcal)`;
+
+            }
+          }
+        }
+      }
+    }
+  });
+}, [activityLog, timeFilter]);
+
+useEffect(() => {
+  if (!caloriesChartRef.current) return;
+  const ctx = caloriesChartRef.current.getContext("2d");
+
+  // gefilterte Logs und sortierte Datenpunkte
+  const filtered = getFilteredActivityLog();
+  const rawDates = Array.from(new Set(filtered.map(e => e.date)))
+    .sort((a, b) => new Date(a) - new Date(b));
+  const labels = rawDates.map(d => new Date(d).toLocaleDateString("de-DE"));
+
+  // Aktivitäts‑Kalorien pro Tag
+  const activityCalories = rawDates.map(date =>
+    filtered
+      .filter(e => e.date === date)
+      .reduce((sum, e) => sum + e.calories, 0)
+  );
+
+  // Berechne den BMR für jedes Datum basierend auf dem Gewicht (falls sich das Gewicht im Verlauf ändert)
+  const bmrData = rawDates.map(date => {
+    // Suche das Gewicht für das aktuelle Datum im weightLog
+    const weightForDate = weightLog.find(log => new Date(log.date).toLocaleDateString("de-DE") === new Date(date).toLocaleDateString("de-DE"));
+    const currentWeight = weightForDate ? weightForDate.weight : weight; // Standard auf aktuelles Gewicht setzen, falls kein Eintrag für das Datum gefunden wurde
+
+    // Berechne den BMR mit den jeweiligen Werten für das aktuelle Datum
+    const newBMR = calculateBMR(currentWeight, height, age, gender);
+    return newBMR;
+  });
+  const totalCalories = bmrData.map((bmr, i) => bmr + activityCalories[i]);
+
+  // bestehenden Chart entfernen
+  if (caloriesChartInstance.current) {
+    caloriesChartInstance.current.destroy();
+  }
+
+  caloriesChartInstance.current = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Aktivitätskalorien',
+          data: activityCalories,
+          backgroundColor: 'rgba(239,68,68,0.6)',
+          borderColor: 'rgba(239,68,68,1)',
+          borderWidth: 1
+        },
+        {
+          type: 'line',
+          label: 'Grundumsatz (BMR)',
+          data: bmrData,
+          borderColor: '#3b82f6',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false
+        },
+        {
+  type: 'line',
+  label: 'Gesamtverbrauch (BMR + Aktivität)',
+  data: totalCalories,
+  borderColor: '#10b981',
+  borderWidth: 2,
+  pointRadius: 0,
+  fill: false,
+  borderDash: [5, 5] // gestrichelte Linie
+}
+        
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { title: { display: true, text: 'Datum' } },
+        y: { beginAtZero: true, title: { display: true, text: 'Kalorien' } }
+      },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      }
+    }
+  });
+}, [activityLog, timeFilter, weightLog, height, age, gender, weight]);
+
+const calculateBMI = () => {
+  if (new Date(weightDate) > new Date()) {
+    alert("Das Datum darf nicht in der Zukunft liegen.");
+    return;
+  }
+  const h = height / 100;
+  const bmiVal = weight / (h * h);
+  const rounded = Math.round(bmiVal * 10) / 10;
+
+  setBmi(rounded);
+
+  if (rounded < 18.5) setCategory("Untergewicht");
+  else if (rounded < 25) setCategory("Normalgewicht");
+  else if (rounded < 30) setCategory("Übergewicht");
+  else setCategory("Adipositas");
+
+  // Gewicht loggen inkl. Datum (vom Input)
+  const newLog = [
+    ...weightLog,
+    { date: weightDate, weight }
+  ];
+  setWeightLog(newLog);
+  localStorage.setItem("weightLog", JSON.stringify(newLog));
+
+  
+  updateChart();
+};
+
+const calculateBMR = () => {
+  const w = weight;
+  const h = height;
+  const a = age;
+  return gender === "m"
+    ? Math.round(10 * w + 6.25 * h - 5 * a + 5)
+    : Math.round(10 * w + 6.25 * h - 5 * a - 161);
+};
+
+const [bmr, setBmr] = useState(calculateBMR());
+useEffect(() => {
+  setBmr(calculateBMR());
+}, [weight, height, age, gender]);
+
+
+
+      const logActivity = () => {
+      
+  if (new Date(activityDate) > new Date()) {
+    alert("Das Datum darf nicht in der Zukunft liegen.");
+    return;
+  }
+  const gain = Math.floor(duration * mergedActivities[activity]);
+  const kcal = Math.round(duration * (mergedActivities[activity] || 0));
+  const newXp = xp + gain;
+  const newLevel = 1 + Math.floor(newXp / 100);
+  setXp(newXp);
+  setLevel(newLevel);
+
+  const newEntry = {
+    activity,
+    duration,
+    date: activityDate,
+    xpGained: gain,
+    calories: kcal
+  };
+
+  const newActivityLog = [...activityLog, newEntry];
+  setActivityLog(newActivityLog);
+  localStorage.setItem("activityLog", JSON.stringify(newActivityLog));
+};
+
+const getFilteredActivityLog = () => {
+  const now = new Date();
+  return activityLog.filter(entry => {
+    const date = new Date(entry.date);
+    if (timeFilter === "week") {
+      const diff = (now - date) / (1000 * 60 * 60 * 24);
+      return diff <= 7;
+    } else if (timeFilter === "month") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    } else if (timeFilter === "year") {
+      return date.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+};
+
+      const getFilteredLog = () => {
+        const now = new Date();
+        return weightLog.filter(entry => {
+          const date = new Date(entry.date);
+          if (timeFilter === "week") {
+            const diff = (now - date) / (1000 * 60 * 60 * 24);
+            return diff <= 7;
+          } else if (timeFilter === "month") {
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+          } else if (timeFilter === "year") {
+            return date.getFullYear() === now.getFullYear();
+          }
+          return true;
+        });
+      };
+
+      const updateChart = () => {
+  const ctx = chartRef.current.getContext("2d");
+  const data = getFilteredLog().sort((a, b) => new Date(a.date) - new Date(b.date));
+  const labels = data.map(e => new Date(e.date).toLocaleDateString());
+  const weights = data.map(e => e.weight);
+
+  const bmiTarget = gender === "w" ? 21 : 22.5;
+  const idealWeight = bmiTarget * Math.pow(height / 100, 2);
+  const idealLine = labels.map(() => idealWeight);
+
+  if (chartInstance.current) {
+    chartInstance.current.destroy();
+  }
+
+  chartInstance.current = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Gewicht (kg)',
+          data: weights,
+          borderColor: '#3b82f6',
+          fill: false
+        },
+        {
+          label: 'Idealgewicht',
+          data: idealLine,
+          borderColor: '#10b901',
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: false
+        }
+      }
+    }
+  });
+};
+
+      
+
+      
+
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+      return (
+        <div className="container">
+            <h1>
+            <img className="header-img" src="img/header2.png" alt="Fitness Tracker" />
+            
+            <span className="header-text">Fitness Tracker</span>
+          </h1>
+
+          <div className="card">
+  <h2 className="section-title">BMI & Gewicht</h2>
+
+  <label>Alter</label>
+  <input type="number" value={age} onChange={e => setAge(+e.target.value)} />
+
+  <label>Geschlecht</label>
+  <select value={gender} onChange={e => setGender(e.target.value)}>
+    <option value="m">Männlich</option>
+    <option value="f">Weiblich</option>
+  </select>
+
+  <label>Größe (cm)</label>
+  <input type="number" value={height} onChange={e => setHeight(+e.target.value)} />
+
+  <label>Gewicht (kg)</label>
+  <input type="number" value={weight} onChange={e => setWeight(+e.target.value)} />
+
+  <label>Datum</label>
+  <input type="date" value={weightDate} onChange={e => setWeightDate(e.target.value)} />
+
+  <button onClick={calculateBMI}>BMI berechnen & Gewicht speichern</button>
+  <button onClick={undoLastEntry}>Letzten Eintrag löschen</button>
+
+  {bmi && <p>BMI: {bmi} ({category})</p>}
+  {bmr && <p>Grundumsatz: {bmr} kcal/Tag</p>}
+</div>
+
+          <div className="card">
+           {/* Aktivität loggen */}
+
+            <h2 className="section-title">Aktivität loggen</h2>
+            <label>Aktivität</label>
+            <select value={activity} onChange={e => setActivity(e.target.value)}>
+            {Object.keys(mergedActivities).map(name =>
+            <option key={name} value={name}>{name}</option>
+            )}
+            </select>
+            <label>Dauer (Minuten)</label>
+            <input type="number" value={duration} onChange={e => setDuration(+e.target.value)} />
+            <label>Datum</label>
+            <input type="date" value={activityDate} onChange={e => setActivityDate(e.target.value)} />
+            <button onClick={logActivity}>Aktivität speichern</button>
+            <button onClick={undoLastEntry}>Letzten Eintrag löschen</button>
+            <p>XP: {xp} | Level: {level}</p>
+          </div>
+
+          <div className="card">
+  <button
+    onClick={() => setShowAddForm(prev => !prev)}
+
+    
+  >
+    {showAddForm ? 'Neue Aktivität anlegen ▲' : 'Neue Aktivität anlegen ▼'}
+  </button>
+
+  {showAddForm && (
+    <div style={{ marginTop: '1rem' }}>
+      <label>Name</label>
+      <input
+        type="text"
+        value={newName}
+        onChange={e => setNewName(e.target.value)}
+      />
+      <label>XP‑Multiplikator</label>
+      <input
+        type="number"
+        min="0"
+        step="0.1"
+        value={newXp}
+        onChange={e => setNewXp(parseFloat(e.target.value))}
+      />
+      <label>Kalorien pro Minute</label>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={newCalories}
+        onChange={e => setNewCalories(parseInt(e.target.value, 10))}
+      />
+      <label>Farbe</label>
+      <input
+        type="color"
+        value={newColor}
+        onChange={e => setNewColor(e.target.value)}
+      />
+      <button onClick={addCustomActivity}>Hinzufügen</button>
+      {confirmation && (
+  <p style={{ color: "green", marginTop: "0.5rem" }}>
+    {confirmation}
+  </p>
+)}
+<button onClick={undoLastEntry}>Letzten Eintrag löschen</button>
+    </div>
+  )}
+</div>
+
+
+          
+          <div className="card">
+  <h2 className="section-title">Trainingsprotokoll</h2>
+  <label>Zeitraum</label>
+  <select value={timeFilter} onChange={e => setTimeFilter(e.target.value)}>
+    <option value="all">Alle</option>
+    <option value="week">Letzte Woche</option>
+    <option value="month">Dieser Monat</option>
+    <option value="year">Dieses Jahr</option>
+  </select>
+  <canvas ref={activityChartRef} height="200"></canvas>
+</div>
+
+<div className="card">
+  <h2 className="section-title">Kalorienverbrauch</h2>
+  <label>Zeitraum</label>
+  <select value={timeFilter} onChange={e => setTimeFilter(e.target.value)}>
+    <option value="all">Alle</option>
+    <option value="week">Letzte Woche</option>
+    <option value="month">Dieser Monat</option>
+    <option value="year">Dieses Jahr</option>
+  </select>
+  <canvas ref={caloriesChartRef} height="200" />
+</div>
+
+
+          <div className="card">
+            <h2 className="section-title">Gewichtsverlauf</h2>
+            <label>Zeitraum</label>
+            <select value={timeFilter} onChange={e => setTimeFilter(e.target.value)}>
+              <option value="all">Alle</option>
+              <option value="week">Letzte Woche</option>
+              <option value="month">Dieser Monat</option>
+              <option value="year">Dieses Jahr</option>
+            </select>
+            <canvas ref={chartRef} height="200"></canvas>
+          </div>
+
+          <div className="card">
+            <h2 className="section-title">Routine-Empfehlungen</h2>
+            {routines.map(r => (
+              <div className="routine" key={r.name}>
+                <strong>{r.goal}</strong>: <a href={r.url} target="_blank" rel="noreferrer">{r.name}</a>
+              </div>
+            ))}
+          </div>
+
+          <div className="card"><button onClick={exportData}>Daten exportieren</button> 
+            <button onClick={clearData}>Daten löschen</button></div>
+
+          
+
+          <div className="card">
+            <h2 className="section-title">Geräteerkennung</h2>
+            <p>{isMobile ? "Mobiles Gerät erkannt" : "Desktop erkannt"}</p>
+          </div>
+          <img className="header-img" src="img/greagre2.png" alt="Fitness Tracker" />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
