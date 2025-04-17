@@ -279,6 +279,22 @@ customActivities.forEach(({ name, xp, calories, color }) => {
   mergedColors[name]    = color;  
 });
 
+const validateInputs = () => {
+  if (age < 18 || age > 120) {
+    alert("Bitte gib ein Alter zwischen 18 und 120 Jahren ein.");
+    return false;
+  }
+  if (height < 40 || height > 250) {
+    alert("Bitte gib eine Größe zwischen 40 cm und 250 cm ein.");
+    return false;
+  }
+  if (weight < 20 || weight > 300) {
+    alert("Bitte gib ein Gewicht zwischen 20 kg und 300 kg ein.");
+    return false;
+  }
+  return true;
+};
+
 // 4. Funktion zum Hinzufügen einer neuen Aktivität  
 const addCustomActivity = () => {  
   if (!newName.trim()) return;  
@@ -645,7 +661,6 @@ useEffect(() => {
 }, [activityLog, timeFilter, weightLog, height, age, gender, weight]);
 
 const calculateBMI = () => {
-const calculateBMI = () => {
   // Validierungslogik
   if (age < 5 || age > 120) {
     alert("Bitte gib ein Alter zwischen 5 und 120 Jahren ein.");
@@ -663,26 +678,25 @@ const calculateBMI = () => {
     alert("Das Datum darf nicht in der Zukunft liegen.");
     return;
   }
+
+  // BMI Berechnung
   const h = height / 100;
   const bmiVal = weight / (h * h);
   const rounded = Math.round(bmiVal * 10) / 10;
 
   setBmi(rounded);
 
+  // Kategorie setzen
   if (rounded < 18.5) setCategory("Untergewicht");
   else if (rounded < 25) setCategory("Normalgewicht");
   else if (rounded < 30) setCategory("Übergewicht");
   else setCategory("Adipositas");
 
-  // Gewicht loggen inkl. Datum (vom Input)
-  const newLog = [
-    ...weightLog,
-    { date: weightDate, weight }
-  ];
+  // Gewicht loggen
+  const newLog = [...weightLog, { date: weightDate, weight }];
   setWeightLog(newLog);
   localStorage.setItem("weightLog", JSON.stringify(newLog));
 
-  
   updateChart();
 };
 
@@ -983,3 +997,4 @@ const getFilteredActivityLog = () => {
   </script>
 </body>
 </html>
+
